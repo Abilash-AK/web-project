@@ -1,4 +1,4 @@
-from rest_framework import status
+﻿from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from django.db.models import Q
@@ -77,7 +77,7 @@ def _upsert_cache(movies):
         MovieCache.objects.update_or_create(
             tmdb_id=movie_id,
             defaults={
-                'title': movie.get('title', ''),
+                'title': movie.get('title') or '',
                 'poster_path': movie.get('poster_path') or '',
                 'backdrop_path': movie.get('backdrop_path') or '',
                 'overview': movie.get('overview', ''),
