@@ -1,0 +1,20 @@
+name = "letterboxd-backend"
+main = "config/wsgi.py"
+compatibility_date = "2024-01-01"
+
+# Cloudflare D1 Database Configuration
+[[d1_databases]]
+binding = "DB"
+database_name = "letterboxd-db"
+database_id = ""  # Will be filled after creating D1 database
+
+# Preview database for development
+preview_database_id = ""  # Optional: separate database for preview
+
+[env.production]
+vars = { DEBUG = "False" }
+
+# Environment variables
+[vars]
+DEBUG = "True"
+TMDB_API_KEY = ""  # Add your TMDb API key here
