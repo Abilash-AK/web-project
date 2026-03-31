@@ -1,6 +1,7 @@
 from collections import Counter
 from reviews.models import Review
 from movies.tmdb_service import TMDbService
+from movies.views import DEFAULT_MOVIES
 
 
 class RecommendationEngine:
@@ -13,16 +14,16 @@ class RecommendationEngine:
         ).values_list('movie_id', flat=True)
         
         if not highly_rated_reviews:
-            return TMDbService.get_trending_movies()[:limit]
+            return (TMDbService.get_trending_movies() or DEFAULT_MOVIES)[:limit]
         
         genre_ids = cls._extract_genres_from_movies(highly_rated_reviews)
         
         if not genre_ids:
-            return TMDbService.get_trending_movies()[:limit]
+            return (TMDbService.get_trending_movies() or DEFAULT_MOVIES)[:limit]
         
         top_genres = [genre_id for genre_id, _ in Counter(genre_ids).most_common(3)]
         
-        recommended_movies = TMDbService.discover_by_genres(top_genres, page=1)
+        recommended_movies = TMDbService.discover_by_genres(top_genres, page=1) or DEFAULT_MOVIES
         
         reviewed_movie_ids = set(Review.objects.filter(user=user).values_list('movie_id', flat=True))
         
@@ -31,7 +32,7 @@ class RecommendationEngine:
             if movie.get('id') not in reviewed_movie_ids
         ]
         
-        return filtered_recommendations[:limit]
+        return (filtered_recommendations or DEFAULT_MOVIES)[:limit]
     
     @classmethod
     def _extract_genres_from_movies(cls, movie_ids):
@@ -54,11 +55,16 @@ class RecommendationEngine:
         
         genre_ids = [genre['id'] for genre in movie_details['genres']]
         
-        similar_movies = TMDbService.discover_by_genres(genre_ids, page=1)
+        similar_movies = TMDbService.discover_by_genres(genre_ids, page=1) or DEFAULT_MOVIES or DEFAULT_MOVIES
         
         filtered_similar = [
             movie for movie in similar_movies 
             if movie.get('id') != movie_id
         ]
         
-        return filtered_similar[:limit]
+        return (filtered_similar or DEFAULT_MOVIES)[:limit]
+
+
+
+
+

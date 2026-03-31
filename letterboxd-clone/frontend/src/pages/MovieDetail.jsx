@@ -34,16 +34,18 @@ const MovieDetail = () => {
       ]);
 
       setMovie(movieRes.data);
-      setReviews(reviewsRes.data);
-      setSimilarMovies(similarRes.data.results.slice(0, 6));
+      const reviewsData = Array.isArray(reviewsRes.data) ? reviewsRes.data : (reviewsRes.data.results || []);
+      setReviews(reviewsData);
+      setSimilarMovies(similarRes.data.results?.slice(0, 6) || []);
 
       if (user) {
-        const existingReview = reviewsRes.data.find((r) => r.user.id === user.id);
+        const existingReview = reviewsData.find((r) => r.user.id === user.id);
         setUserReview(existingReview);
-        
+
         try {
           const watchedRes = await axiosInstance.get(`/reviews/watched/?username=${user.username}`);
-          const watched = watchedRes.data.find((w) => w.movie_id === parseInt(id));
+          const watchedData = Array.isArray(watchedRes.data) ? watchedRes.data : (watchedRes.data.results || []);
+          const watched = watchedData.find((w) => w.movie_id === parseInt(id));
           setIsWatched(!!watched);
         } catch (error) {
           console.error('Error checking watched status:', error);
@@ -72,7 +74,8 @@ const MovieDetail = () => {
       setShowReviewForm(false);
     } catch (error) {
       console.error('Error submitting review:', error);
-      alert('Failed to submit review. Please try again.');
+      const errorMsg = error.response?.data ? JSON.stringify(error.response.data) : error.message;
+      alert(`Failed to submit review. Details: ${errorMsg}`);
     } finally {
       setReviewLoading(false);
     }
