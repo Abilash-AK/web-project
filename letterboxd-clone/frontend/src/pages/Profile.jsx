@@ -37,8 +37,10 @@ const Profile = () => {
 
       setProfile(profileRes.data);
 
+      const watchedData = Array.isArray(watchedRes.data) ? watchedRes.data : (watchedRes.data.results || []);
+
       const watchedWithDetails = await Promise.all(
-        watchedRes.data.map(async (watched) => {
+        watchedData.map(async (watched) => {
           try {
             const movieRes = await axiosInstance.get(`/movies/${watched.movie_id}/`);
             return {
@@ -56,7 +58,8 @@ const Profile = () => {
 
       try {
         const reviewsRes = await axiosInstance.get(`/reviews/?user_id=${profileRes.data.id}`);
-        setReviews(reviewsRes.data);
+        const reviewsData = Array.isArray(reviewsRes.data) ? reviewsRes.data : (reviewsRes.data.results || []);
+        setReviews(reviewsData);
       } catch (error) {
         console.error('Error loading reviews:', error);
       }

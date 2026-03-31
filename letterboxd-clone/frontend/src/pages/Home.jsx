@@ -9,6 +9,7 @@ const Home = () => {
   const [popular, setPopular] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [debugError, setDebugError] = useState(null);
 
   useEffect(() => {
     loadMovies();
@@ -17,25 +18,31 @@ const Home = () => {
   const loadMovies = async () => {
     try {
       setLoading(true);
+      setDebugError(null);
 
       const [trendingRes, popularRes] = await Promise.all([
         axiosInstance.get('/movies/trending/'),
         axiosInstance.get('/movies/popular/'),
       ]);
 
-      setTrending(trendingRes.data.results.slice(0, 8));
-      setPopular(popularRes.data.results.slice(0, 12));
+      console.log('Trending:', trendingRes.data);
+      console.log('Popular:', popularRes.data);
+
+      setTrending(trendingRes.data.results?.slice(0, 8) || []);
+      setPopular(popularRes.data.results?.slice(0, 12) || []);
 
       if (user) {
         try {
           const recRes = await axiosInstance.get('/recommendations/');
-          setRecommendations(recRes.data.results.slice(0, 8));
+          const recData = Array.isArray(recRes.data) ? recRes.data : (recRes.data.results || []);
+          setRecommendations(recData.slice(0, 8));
         } catch (error) {
           console.error('Error loading recommendations:', error);
         }
       }
     } catch (error) {
       console.error('Error loading movies:', error);
+      setDebugError(error.message || String(error));
     } finally {
       setLoading(false);
     }
@@ -56,6 +63,12 @@ const Home = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      {debugError && (
+        <div className="bg-red-500 text-white p-4 mb-8 rounded">
+          <h2 className="font-bold">Error Loading Data:</h2>
+          <p>{debugError}</p>
+        </div>
+      )}
       <div className="mb-12">
         <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
           Track films you've watched.

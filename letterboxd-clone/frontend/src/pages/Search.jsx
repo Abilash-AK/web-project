@@ -7,29 +7,71 @@ const Search = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState(searchParams.get('q') || '');
   const [results, setResults] = useState([]);
+  const [defaultMovies, setDefaultMovies] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [debugError, setDebugError] = useState(null);
+
+  const normalizeResults = (response) => {
+    console.log('API RESPONSE:', response);
+    const payload = response?.data?.results ?? response?.data ?? [];
+    console.log('PAYLOAD:', payload);
+    const result = Array.isArray(payload)
+      ? payload
+      : Array.isArray(payload?.results)
+        ? payload.results
+        : [];
+    console.log('NORMALIZED:', result);
+    return result;
+  };
 
   useEffect(() => {
     const q = searchParams.get('q');
     if (q) {
       setQuery(q);
       performSearch(q);
+    } else {
+      setSearched(false);
+      loadDefaultMovies();
     }
   }, [searchParams]);
+
+  const loadDefaultMovies = async () => {
+    try {
+      setLoading(true);
+      setDebugError(null);
+      const response = await axiosInstance.get('/movies/popular/');
+      const movies = normalizeResults(response);
+      setDefaultMovies(movies.slice(0, 12));
+    } catch (error) {
+      console.error('Default movies error:', error);
+      setDebugError(error.message || String(error));
+      setDefaultMovies([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const performSearch = async (searchQuery) => {
     if (!searchQuery.trim()) return;
 
     setLoading(true);
     setSearched(true);
+    setDebugError(null);
 
     try {
       const response = await axiosInstance.get(`/movies/search/?q=${encodeURIComponent(searchQuery)}`);
-      setResults(response.data.results || []);
+      setResults(normalizeResults(response));
     } catch (error) {
       console.error('Search error:', error);
-      setResults([]);
+      try {
+        const fallbackResponse = await axiosInstance.get('/movies/popular/');
+        setResults(normalizeResults(fallbackResponse));
+      } catch (fallbackError) {
+        console.error('Search fallback error:', fallbackError);
+        setDebugError(fallbackError.message || String(fallbackError));
+        setResults([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -44,6 +86,12 @@ const Search = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      {debugError && (
+        <div className="bg-red-500 text-white p-4 mb-8 rounded">
+          <h2 className="font-bold">Error Loading Data:</h2>
+          <p>{debugError}</p>
+        </div>
+      )}
       <div className="max-w-2xl mx-auto mb-12">
         <h1 className="text-4xl font-bold text-white mb-8 text-center">Search Movies</h1>
         
@@ -92,10 +140,23 @@ const Search = () => {
       )}
 
       {!loading && !searched && (
-        <div className="text-center py-12">
-          <p className="text-text-secondary text-lg">
-            Enter a movie title to start searching
-          </p>
+        <div>
+          {defaultMovies.length > 0 ? (
+            <div>
+              <p className="text-text-secondary mb-6">Popular movies</p>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                {defaultMovies.map((movie) => (
+                  <MovieCard key={movie.id} movie={movie} />
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-text-secondary text-lg">
+                Enter a movie title to start searching
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>

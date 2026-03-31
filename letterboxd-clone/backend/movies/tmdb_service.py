@@ -7,19 +7,32 @@ class TMDbService:
     BASE_URL = settings.TMDB_BASE_URL
     API_KEY = settings.TMDB_API_KEY
     IMAGE_BASE_URL = settings.TMDB_IMAGE_BASE_URL
+    REQUEST_TIMEOUT_SECONDS = 1.5
+    _is_offline = False  # Circuit breaker for blocked network
     
     @classmethod
     def _make_request(cls, endpoint, params=None):
+        if cls._is_offline:
+            return None
+
         if params is None:
             params = {}
         params['api_key'] = cls.API_KEY
         
         try:
-            response = requests.get(f"{cls.BASE_URL}{endpoint}", params=params)
+            response = requests.get(
+                f"{cls.BASE_URL}{endpoint}",
+                params=params,
+                timeout=cls.REQUEST_TIMEOUT_SECONDS,
+            )
             response.raise_for_status()
             return response.json()
         except requests.RequestException as e:
             print(f"TMDb API Error: {e}")
+            # If it's a timeout or connection error, trip the offline flag
+            if isinstance(e, (requests.Timeout, requests.ConnectionError)):
+                print("TMDb mapped as offline. Circuit breaker tripped.")
+                cls._is_offline = True
             return None
     
     @classmethod
