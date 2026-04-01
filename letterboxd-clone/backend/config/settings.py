@@ -67,6 +67,10 @@ DATABASES = {
     )
 }
 
+# Add longer timeout for SQLite to prevent "database is locked" errors on concurrent requests
+if DATABASES['default']['ENGINE'] == 'django.db.backends.sqlite3':
+    DATABASES['default']['OPTIONS'] = {'timeout': 20}
+
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
