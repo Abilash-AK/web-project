@@ -20,10 +20,9 @@ const Home = () => {
       setLoading(true);
       setDebugError(null);
 
-      const [trendingRes, popularRes] = await Promise.all([
-        axiosInstance.get('/movies/trending/'),
-        axiosInstance.get('/movies/popular/'),
-      ]);
+      // Fetch sequentially to prevent SQLite database lock errors in backend
+      const trendingRes = await axiosInstance.get('/movies/trending/');
+      const popularRes = await axiosInstance.get('/movies/popular/');
 
       console.log('Trending:', trendingRes.data);
       console.log('Popular:', popularRes.data);

@@ -70,23 +70,28 @@ def _cache_to_movie(cache):
 
 
 def _upsert_cache(movies):
-    for movie in movies:
-        movie_id = movie.get('id')
-        if not movie_id:
-            continue
-        MovieCache.objects.update_or_create(
-            tmdb_id=movie_id,
-            defaults={
-                'title': movie.get('title') or '',
-                'poster_path': movie.get('poster_path') or '',
-                'backdrop_path': movie.get('backdrop_path') or '',
-                'overview': movie.get('overview', ''),
-                'release_date': movie.get('release_date') or None,
-                'genres': movie.get('genres', []),
-                'vote_average': movie.get('vote_average', 0),
-                'vote_count': movie.get('vote_count', 0),
-            },
-        )
+    from django.db import transaction
+    with transaction.atomic():
+        for movie in movies:
+            movie_id = movie.get('id')
+            if not movie_id:
+                continue
+            try:
+                MovieCache.objects.update_or_create(
+                    tmdb_id=movie_id,
+                    defaults={
+                        'title': movie.get('title') or '',
+                        'poster_path': movie.get('poster_path') or '',
+                        'backdrop_path': movie.get('backdrop_path') or '',
+                        'overview': movie.get('overview', ''),
+                        'release_date': movie.get('release_date') or None,
+                        'genres': movie.get('genres', []),
+                        'vote_average': movie.get('vote_average', 0),
+                        'vote_count': movie.get('vote_count', 0),
+                    },
+                )
+            except Exception:
+                pass
 
 
 @api_view(['GET'])
